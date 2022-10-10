@@ -107,3 +107,25 @@ function parseJSON<T>(value: string | null): T | undefined {
         return undefined
     }
 }
+
+
+
+
+
+
+
+
+
+function Component() {
+    const [isDarkTheme, setDarkTheme] = useLocalStorage('darkTheme', true)
+
+    const toggleTheme = () => {
+        setDarkTheme((prevValue: boolean) => !prevValue)
+    }
+
+    return (
+        <button onClick={toggleTheme}>
+            {`The current theme is ${isDarkTheme ? `dark` : `light`}`}
+        </button>
+    )
+}

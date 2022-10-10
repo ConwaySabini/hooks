@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useIsomorphicLayoutEffect } from 'usehooks-ts'
 
@@ -25,3 +25,31 @@ function useTimeout(callback: () => void, delay: number | null) {
 }
 
 export default useTimeout
+
+
+
+
+
+
+
+
+
+
+
+function Component() {
+    const [visible, setVisible] = useState(true)
+
+    const hide = () => setVisible(false)
+
+    useTimeout(hide, 5000)
+
+    return (
+        <div>
+            <p>
+                {visible
+                    ? "I'm visible for 5000ms"
+                    : 'You can no longer see this content'}
+            </p>
+        </div>
+    )
+}
