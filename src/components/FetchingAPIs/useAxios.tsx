@@ -1,78 +1,100 @@
-import { useState, useEffect } from 'react';
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { useState, useEffect } from "react";
+import axios from 'axios';
 
-axios.defaults.baseURL = 'https://jsonplaceholder.typicode.com';
-//If you are using different URLs, consider removing this line and adding a baseURL in the Axios Config parameter. 
+// will only fetch data, not other operations such as post, put, delete, etc
+const useAxios = (configObj: any) => {
+    const {
+        axiosInstance,
+        method,
+        url,
+        requestConfig = {}
+    } = configObj;
 
-const useAxios = (axiosParams: AxiosRequestConfig) => {
-    const [response, setResponse] = useState<AxiosResponse>();
-    const [error, setError] = useState<AxiosError>();
-    const [loading, setLoading] = useState(axiosParams.method === "GET" || axiosParams.method === "get");
+    const [response, setResponse] = useState([]);
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
+    // will reload the component using the hook on another fetch
+    const [reload, setReload] = useState(0);
 
-    const fetchData = async (params: AxiosRequestConfig) => {
-        try {
-            const result = await axios.request(params);
-            setResponse(result);
-        } catch (err: any) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const sendData = () => {
-        fetchData(axiosParams);
-    }
+    const refetch = () => setReload(prev => prev + 1);
 
     useEffect(() => {
-        if (axiosParams.method === "GET" || axiosParams.method === "get") {
-            fetchData(axiosParams);
-        }
-    }, []);
+        const controller = new AbortController();
 
-    return { response, error, loading, sendData };
+        const fetchData = async () => {
+            try {
+                const res = await axiosInstance[method.toLowerCase()](url, {
+                    ...requestConfig,
+                    signal: controller.signal
+                });
+                console.log(res);
+                setResponse(res.data);
+            } catch (err: any) {
+                console.log(err.message);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // call the function
+        fetchData();
+
+        // useEffect cleanup function
+        return () => controller.abort();
+
+        // eslint-disable-next-line
+    }, [reload]);
+
+    return [response, error, loading, refetch];
 }
 
 export default useAxios;
 
 
-// usage
 
 
-function App() {
-    const [postId, setPostId] = useState(1);
-    const { response, loading, error, sendData } = useAxios({
-        method: "get",
-        url: `/posts/${postId}`,
-        headers: {
-            accept: '*/*'
+
+
+const BASE_URL = 'https://icanhazdadjoke.com';
+
+const axiosConfig = axios.create({
+    baseURL: BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+});
+
+
+const Jokes = () => {
+
+    const [joke, error, loading, refetch] = useAxios({
+        axiosInstance: axiosConfig,
+        method: 'GET',
+        url: '/',
+        requestConfig: {
+            headers: {
+                'Content-Language': 'en-US',
+                //'Accept': 'text/html'
+            }
         }
     });
 
-    const getNextPost = () => {
-        setPostId(postId + 1);
-        sendData();
-    }
     return (
-        <div className="App">
-            <h1 className="page-title">Posts</h1>
-            {loading && (
-                <p>Loading...</p>
-            )}
-            {error && (
-                <p>{error.message}</p>
-            )}
-            {!loading && !error && (
-                <article className="post">
-                    <h3 className="post-title">{response?.data.title}</h3>
-                    <p className="post-body">
-                        {response?.data.body}
-                    </p>
-                </article>
-            )}
-            <button onClick={() => getNextPost()}>
-                Next Article Please!
-            </button>
-        </div>
+        <article>
+
+            <h2>Random Dad Joke</h2>
+
+            {loading && <p>Loading...</p>}
+
+            {!loading && error && <p className="errMsg">{error}</p>}
+
+            {!loading && !error && joke && <p>{joke?.joke}</p>}
+
+            {!loading && !error && !joke && <p>No dad joke to display</p>}
+
+            <button onClick={() => refetch()}>Get Joke</button>
+        </article>
     );
 }
